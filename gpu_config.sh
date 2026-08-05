@@ -33,32 +33,38 @@ setup_render_node() {
     if [ ! -z "$node" ]; then
         echo "force render node: $node"
 
-        setprop gralloc.gbm.device $node
-        chmod 666 $node
+        if [ ! -e "$node" ]; then
+            echo "render node does not exist: $node"
+            return 1
+        fi
 
-        # setup vulkan
-        cd /sys/kernel/debug/dri
-        driver="`cat ${node: -3}/name | cut -d' ' -f1`"
-        setup_vulkan $driver
+        setprop gralloc.gbm.device "$node"
+        chmod 666 "$node"
+        minor="${node##*renderD}"
+        if [ -r "/sys/kernel/debug/dri/$minor/name" ]; then
+            driver="`cut -d' ' -f1 /sys/kernel/debug/dri/$minor/name`"
+            setup_vulkan "$driver"
+        fi
         return 0
     fi
 
-    cd /sys/kernel/debug/dri
-    for d in * ; do
-        if [ "$d" -ge "128" ]; then
-            driver="`cat $d/name | cut -d' ' -f1`"
-            echo "DRI node exists, driver: $driver"
-            setup_vulkan $driver
-            case $driver in
-                i915|amdgpu|nouveau|virtio_gpu|v3d|vc4|msm_drm|panfrost)
-                    node="/dev/dri/renderD$d"
-                    echo "use render node: $node"
-                    setprop gralloc.gbm.device $node
-                    chmod 666 $node
-                    return 0
-                    ;;
-            esac
+    # A render node is sufficient for GBM; debugfs is optional in containers.
+    for node in /dev/dri/renderD* ; do
+        if [ ! -e "$node" ]; then
+            continue
         fi
+
+        minor="${node##*renderD}"
+        if [ -r "/sys/kernel/debug/dri/$minor/name" ]; then
+            driver="`cut -d' ' -f1 /sys/kernel/debug/dri/$minor/name`"
+            echo "DRI node exists, driver: $driver"
+            setup_vulkan "$driver"
+        fi
+
+        echo "use render node: $node"
+        setprop gralloc.gbm.device "$node"
+        chmod 666 "$node"
+        return 0
     done
 
     echo "NO qualified render node found"
@@ -68,6 +74,7 @@ setup_render_node() {
 gpu_setup_host() {
     echo "use GPU host mode"
 
+    setprop gralloc.gbm.backend drm
     setprop ro.hardware.egl mesa
     setprop ro.hardware.gralloc gbm
     setprop ro.boot.redroid_fps 30
@@ -85,10 +92,12 @@ gpu_setup_guest() {
         egl=swiftshader
     else
         echo "ERROR no SW egl found!!!"
+        return 1
     fi
 
+    setprop gralloc.gbm.backend software
     setprop ro.hardware.egl $egl
-    setprop ro.hardware.gralloc redroid
+    setprop ro.hardware.gralloc gbm
     setprop ro.hardware.vulkan pastel
 }
 
@@ -98,7 +107,10 @@ gpu_setup() {
 
     mode=`getprop ro.boot.redroid_gpu_mode auto`
     if [ "$mode" = "host" ]; then
-        setup_render_node
+        if ! setup_render_node; then
+            echo "ERROR gralloc.gbm DRM backend requires a render node"
+            return 1
+        fi
         gpu_setup_host
     elif [ "$mode" = "guest" ]; then
         gpu_setup_guest
@@ -115,4 +127,3 @@ gpu_setup() {
 }
 
 gpu_setup
-
