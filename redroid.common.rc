@@ -47,6 +47,10 @@ on use_redroid_overlayfs
 on early-init && property:ro.boot.redroid_dpi=*
     setprop ro.sf.lcd_density ${ro.boot.redroid_dpi}
 
+# Floral display density is independent from the legacy redroid composer.
+on early-init && property:ro.boot.floral_dpi=*
+    setprop ro.sf.lcd_density ${ro.boot.floral_dpi}
+
 
 on property:ro.zygote=zygote64_32
     write /proc/sys/kernel/pid_max 65535
