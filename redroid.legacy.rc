@@ -37,11 +37,3 @@ on early-init && property:ro.kernel.net.eth0.proxy.exclusionList=*
 
 on early-init && property:ro.kernel.net.eth0.proxy.pac=*
     setprop ro.boot.redroid_net_proxy_pac ${ro.kernel.net.eth0.proxy.pac} 
-
-
-# GPU
-on early-init && property:ro.kernel.redroid.gpu.mode=*
-    setprop ro.boot.redroid_gpu_mode ${ro.kernel.redroid.gpu.mode}
-
-on early-init && property:ro.kernel.redroid.gpu.node=*
-    setprop ro.boot.redroid_gpu_node ${ro.kernel.redroid.gpu.node}

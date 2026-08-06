@@ -29,7 +29,7 @@ setup_vulkan() {
 }
 
 setup_render_node() {
-    node=`getprop ro.boot.redroid_gpu_node`
+    node=`getprop ro.boot.floral_gpu_node`
     if [ ! -z "$node" ]; then
         echo "force render node: $node"
 
@@ -105,7 +105,7 @@ gpu_setup() {
     ## mode=(auto, host, guest)
     ## node=(/dev/dri/renderDxxx)
 
-    mode=`getprop ro.boot.redroid_gpu_mode auto`
+    mode=`getprop ro.boot.floral_gpu_mode auto`
     if [ "$mode" = "host" ]; then
         if ! setup_render_node; then
             echo "ERROR gralloc.gbm DRM backend requires a render node"
