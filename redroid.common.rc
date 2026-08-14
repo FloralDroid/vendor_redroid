@@ -32,6 +32,10 @@ on early-init
     # assume GLES 3.2 supported
     setprop ro.opengles.version 196610
 
+# Floral provides a DMA Heap-compatible Codec2 store when a VA-API node is configured.
+on early-init && property:ro.boot.floral_vaapi_device=*
+    setprop debug.stagefright.ccodec 4
+
 # setup overlay data partition
 on early-init && property:ro.boot.use_redroid_overlayfs=1
     trigger use_redroid_overlayfs
