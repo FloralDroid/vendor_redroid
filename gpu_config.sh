@@ -77,7 +77,6 @@ gpu_setup_host() {
     setprop gralloc.gbm.backend drm
     setprop ro.hardware.egl mesa
     setprop ro.hardware.gralloc gbm
-    setprop ro.boot.redroid_fps 30
 }
 
 gpu_setup_guest() {
