@@ -10,13 +10,16 @@ setup_vulkan() {
         amdgpu)
             setprop ro.hardware.vulkan radeon
             ;;
+        nouveau)
+            setprop ro.hardware.vulkan nouveau
+            ;;
         virtio_gpu)
             setprop ro.hardware.vulkan virtio
             ;;
         v3d|vc4)
             setprop ro.hardware.vulkan broadcom
             ;;
-        msm_drm)
+        msm|msm_drm)
             setprop ro.hardware.vulkan freedreno
             ;;
         panfrost)
@@ -24,8 +27,11 @@ setup_vulkan() {
             ;;
         *)
             echo "not supported driver: $1"
+            return 1
             ;;
     esac
+
+    return 0
 }
 
 setup_render_node() {
@@ -33,13 +39,12 @@ setup_render_node() {
     if [ -n "$node" ]; then
         echo "force render node: $node"
 
-        setprop gralloc.gbm.device "$node"
         chmod 666 "$node"
 
         # setup vulkan
         driver=$(cut -d' ' -f1 "/sys/kernel/debug/dri/${node#/dev/dri/renderD}/name")
         setup_vulkan "$driver"
-        return 0
+        return $?
     fi
 
     cd /sys/kernel/debug/dri || exit
@@ -47,16 +52,12 @@ setup_render_node() {
         if [ "$d" -ge "128" ]; then
             driver="$(cut -d' ' -f1 "$d/name")"
             echo "DRI node exists, driver: $driver"
-            setup_vulkan "$driver"
-            case $driver in
-                i915|amdgpu|nouveau|virtio_gpu|v3d|vc4|msm_drm|panfrost)
-                    node="/dev/dri/renderD$d"
-                    echo "use render node: $node"
-                    setprop gralloc.gbm.device "$node"
-                    chmod 666 "$node"
-                    return 0
-                    ;;
-            esac
+            if setup_vulkan "$driver"; then
+                node="/dev/dri/renderD$d"
+                echo "use render node: $node"
+                chmod 666 "$node"
+                return 0
+            fi
         fi
     done
 
@@ -68,7 +69,7 @@ gpu_setup_host() {
     echo "use GPU host mode"
 
     setprop ro.hardware.egl mesa
-    setprop ro.hardware.gralloc gbm
+    setprop ro.hardware.gralloc minigbm
     setprop ro.boot.redroid_fps 30
 }
 
@@ -117,4 +118,3 @@ gpu_setup() {
 }
 
 gpu_setup
-
