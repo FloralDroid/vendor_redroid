@@ -23,18 +23,14 @@ on early-init
     # inputflinger require this dir
     mkdir /dev/input
 
-    # disable codec2 by default, DMA Heap required
-    setprop debug.stagefright.ccodec 0
+    # Floral provides a DMA Heap-compatible Codec2 store on supported backends.
+    setprop debug.stagefright.ccodec 4
 
     # disable some verbose logs
     setprop log.tag.libprocessgroup F
 
     # assume GLES 3.2 supported
     setprop ro.opengles.version 196610
-
-# Floral provides a DMA Heap-compatible Codec2 store when a VA-API node is configured.
-on early-init && property:ro.boot.floral_vaapi_device=*
-    setprop debug.stagefright.ccodec 4
 
 # setup overlay data partition
 on early-init && property:ro.boot.use_redroid_overlayfs=1

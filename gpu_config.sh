@@ -16,7 +16,7 @@ setup_vulkan() {
         v3d|vc4)
             setprop ro.hardware.vulkan broadcom
             ;;
-        msm_drm)
+        msm|msm_drm)
             setprop ro.hardware.vulkan freedreno
             ;;
         panfrost)
