@@ -16,7 +16,7 @@ setup_vulkan() {
         v3d|vc4)
             setprop ro.hardware.vulkan broadcom
             ;;
-        msm|msm_drm)
+        msm|msm_drm|msm_dpu)
             setprop ro.hardware.vulkan freedreno
             ;;
         panfrost)
@@ -26,6 +26,25 @@ setup_vulkan() {
             echo "not supported driver: $1"
             ;;
     esac
+}
+
+setup_vulkan_for_render_node() {
+    minor="${1##*renderD}"
+    debugfs_name="/sys/kernel/debug/dri/$minor/name"
+    if [ -r "$debugfs_name" ]; then
+        driver="`cut -d' ' -f1 "$debugfs_name"`"
+        setup_vulkan "$driver"
+        return
+    fi
+
+    # Qualcomm containers may not expose debugfs; identify msm_dpu via sysfs.
+    uevent="/sys/class/drm/renderD$minor/device/uevent"
+    if [ -r "$uevent" ]; then
+        driver="`sed -n 's/^DRIVER=//p' "$uevent"`"
+        if [ "$driver" = "msm_dpu" ]; then
+            setup_vulkan "$driver"
+        fi
+    fi
 }
 
 setup_render_node() {
@@ -40,11 +59,7 @@ setup_render_node() {
 
         setprop gralloc.gbm.device "$node"
         chmod 666 "$node"
-        minor="${node##*renderD}"
-        if [ -r "/sys/kernel/debug/dri/$minor/name" ]; then
-            driver="`cut -d' ' -f1 /sys/kernel/debug/dri/$minor/name`"
-            setup_vulkan "$driver"
-        fi
+        setup_vulkan_for_render_node "$node"
         return 0
     fi
 
@@ -58,8 +73,8 @@ setup_render_node() {
         if [ -r "/sys/kernel/debug/dri/$minor/name" ]; then
             driver="`cut -d' ' -f1 /sys/kernel/debug/dri/$minor/name`"
             echo "DRI node exists, driver: $driver"
-            setup_vulkan "$driver"
         fi
+        setup_vulkan_for_render_node "$node"
 
         echo "use render node: $node"
         setprop gralloc.gbm.device "$node"
