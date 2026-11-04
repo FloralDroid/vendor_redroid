@@ -19,6 +19,7 @@ on early-init
     # used to place domain sockets
     mkdir /ipc 0777
 
+    exec -- /bin/rm -rf /dev/input
     # inputflinger require this dir
     mkdir /dev/input
 
